@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, make_response
+from flask import Flask, jsonify, request, make_response
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
 
@@ -79,6 +79,52 @@ class NewsletterByID(Resource):
         )
 
         return response
+    
+    def patch(self, id):
+        record = Newsletter.query.filter(Newsletter.id == id).first()
+
+        if not record:
+            return make_response(jsonify({"Error": "Record not found"}), 404)
+        
+        # Handling JSON and Form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+
+        # Loop over data to update attributes
+        for attr in data:
+            value = data.get(attr)
+
+            # # Check if attr is 'price' and convert to float
+            # if attr == 'price':
+            #     try:
+            #         value = float(value)
+            #     except ValueError:
+            #         return make_response(jsonify({"Error": "Invalid price format"}), 400)
+            
+            # Update the attribute in the record
+            setattr(record, attr, value)
+
+        db.session.add(record)
+        db.session.commit()
+
+        response = make_response(jsonify(record.to_dict()), 200)
+
+        return response
+    
+    def delete(self, id):
+        record = Newsletter.query.filter(Newsletter.id == id).first()
+
+        db.session.delete(record)
+        db.session.commit()
+
+        response = make_response(jsonify({
+            "Message": "Record successfully deleted.",
+        }), 200)
+
+        return response
+    
 
 api.add_resource(NewsletterByID, '/newsletters/<int:id>')
 
